@@ -98,6 +98,8 @@ def spin():
         return jsonify({"error": str(e)}), 400
 
 if __name__ == "__main__":
+    # 개발 환경에서는 debug=True로 실행
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
     try:
         port = 5000  # 필요하면 5050 등으로 변경
         url = f"http://127.0.0.1:{port}"

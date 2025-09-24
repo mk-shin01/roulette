@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <title>저녁메뉴·만남장소 돌림판</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background:#f7f7fb; display: flex; justify-content: center;}
+    .container {max-width: 920px; width: 100%;}
+    h1 { margin-bottom: 12px; }
+    h2 { margin: 0 0 12px; font-size:18px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 720px){ .grid{ grid-template-columns:1fr; } }
+    .card { background:#fff; border:1px solid #ddd; border-radius:12px;
+            padding:16px; margin-bottom:16px; box-shadow:0 4px 8px rgba(0,0,0,.04);}
+    .card.center { text-align:center; }
+    .inline { display:flex; gap:8px; align-items:center; }
+    input[type=text], input[type=number] {
+      flex:1; padding:8px; border:1px solid #ccc; border-radius:8px;
+    }
+    button {
+      padding:8px 16px; min-width:70px; white-space:nowrap; cursor:pointer;
+      border-radius:8px; border:1px solid #ccc; background:#f1f5f9;
+    }
+    button:hover { background:#e2e8f0; }
+    .btn-primary { background:#2563eb; color:white; border-color:#2563eb; }
+    .btn-primary:hover { background:#1d4ed8; }
+    ul { padding-left: 18px; }
+    .result { font-size:20px; font-weight:700; margin-top:12px; }
+    .muted { color:#666; font-size:13px; }
+    .badge {
+      position:fixed; top:10px; right:12px; font-size:16px; color:#666;
+      padding:6px 12px; border:1px solid #ddd; border-radius:999px;
+      background:white;
+      box-shadow:0 2px 6px rgba(0,0,0,.1);
+    }
+
+    ul { list-style:none; padding-left:0; }
+    li { display:flex; justify-content:space-between; align-items:center; margin:4px 0; }
+    li span { flex:1; }
+
+    .btn-delete {
+  background:#ef4444;
+  color:white;
+  border:none;
+  border-radius:6px;
+  padding:4px 8px;
+  cursor:pointer;
+  font-size:12px;
+}
+    .btn-delete:hover { background:#dc2626; }
+
+    .subtitle {
+    
+  font-size: 0.6em;   /* 제목 대비 작게 */
+  font-weight: normal;
+  color: #666;
+  margin-left: 8px;   /* 제목과 간격 */
+    }
+  </style>
+</head>
+<body>
+  <div class="badge">Made by mk</div>
+  <div class="container"></div>
+    <h1>🎡 저녁메뉴 & 만남장소 돌림판
+        <span class="subtitle">for 끄투맨틀</span>
+    </h1>
+
+    <div class="grid">
+    <!-- 메뉴 -->
+        <div class="card">
+            <h2>메뉴</h2>
+        <div class="inline">
+            <input id="menuName" type="text" placeholder="예: 초밥"/>
+            <input id="menuW" type="number" step="0.1" placeholder="가중치(선택)"/>
+         <button onclick="addItem('menu')">추가</button>
+         </div>
+         <ul id="menuList"></ul>
+     </div>
+
+    <!-- 장소 -->
+     <div class="card">
+          <h2>장소</h2>
+          <div class="inline">
+            <input id="placeName" type="text" placeholder="예: 강남역"/>
+           <input id="placeW" type="number" step="0.1" placeholder="가중치(선택)"/>
+          <button onclick="addItem('place')">추가</button>
+          </div>
+       <ul id="placeList"></ul>
+      </div>
+      </div>
+
+  <!-- 스핀 -->
+  <div class="card center">
+    <h2>스핀</h2>
+    <button class="btn-primary" onclick="spin()">🎲 돌려!</button>
+    <div id="result" class="result"></div>
+    <div class="muted">가중치 미설정 시 모두 동일 확률</div>
+  </div>
+
+  <script>
+    // 간단한 로컬 저장 mock DB
+    const db = { menus: [], places: [], menu_weights:{}, place_weights:{} };
+
+    function render() {
+  const menuList = document.getElementById("menuList");
+  menuList.innerHTML = "";
+  db.menus.forEach(m=>{
+    const li=document.createElement("li");
+    const span=document.createElement("span");
+    span.textContent = m + (db.menu_weights[m] ? ` (가중치 ${db.menu_weights[m]})` : "");
+    const btn=document.createElement("button");
+    btn.textContent="삭제";
+    btn.className="btn-delete";
+    btn.onclick=()=>removeItem("menu",m);
+    li.appendChild(span);
+    li.appendChild(btn);
+    menuList.appendChild(li);
+  });
+
+  const placeList = document.getElementById("placeList");
+  placeList.innerHTML = "";
+  db.places.forEach(p=>{
+    const li=document.createElement("li");
+    const span=document.createElement("span");
+    span.textContent = p + (db.place_weights[p] ? ` (가중치 ${db.place_weights[p]})` : "");
+    const btn=document.createElement("button");
+    btn.textContent="삭제";
+    btn.className="btn-delete";
+    btn.onclick=()=>removeItem("place",p);
+    li.appendChild(span);
+    li.appendChild(btn);
+    placeList.appendChild(li);
+  });
+}
+
+    function addItem(type){
+      const nameEl = document.getElementById(type+"Name");
+      const wEl = document.getElementById(type+"W");
+      const name = nameEl.value.trim();
+      const w = parseFloat(wEl.value);
+      if(!name) return;
+      if(type==="menu" && !db.menus.includes(name)) db.menus.push(name);
+      if(type==="place" && !db.places.includes(name)) db.places.push(name);
+      if(!isNaN(w)){
+        if(type==="menu") db.menu_weights[name]=w;
+        else db.place_weights[name]=w;
+      }
+      nameEl.value=""; wEl.value="";
+      render();
+    }
+
+    function removeItem(type, name){
+      if(type==="menu"){ db.menus=db.menus.filter(x=>x!==name); delete db.menu_weights[name]; }
+      else { db.places=db.places.filter(x=>x!==name); delete db.place_weights[name]; }
+      render();
+    }
+
+    function spin(){
+      const pick = (arr,weights) => {
+        if(arr.length===0) return null;
+        const total=arr.reduce((s,x)=>s+(weights[x]||1),0);
+        let r=Math.random()*total;
+        for(const x of arr){
+          r-=(weights[x]||1);
+          if(r<=0) return x;
+        }
+        return arr[0];
+      };
+      const m = pick(db.menus, db.menu_weights);
+      const p = pick(db.places, db.place_weights);
+      document.getElementById("result").textContent = m && p ? `${m} at ${p}` : "추가하고 돌려라";
+    }
+
+    render();
+  </script>
+  <footer class="footer">
+  © 2025 mk. All rights reserved.
+</footer>
+</body>
+</html>
